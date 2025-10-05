@@ -6,6 +6,7 @@ import CoreUI
 public struct BooksFeatureView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
     @State private var filters = BookFilterState()
+    @State private var searchText: String = ""
     @State private var selectedBook: Book?
 
     public init() {}
@@ -45,6 +46,31 @@ public struct BooksFeatureView: View {
                 }
             }
             .searchable(text: $filters.searchText, placement: .toolbar, prompt: Text("Поиск по названию, автору или жанру"))
+            ScrollView(.horizontal) {
+                LazyHGrid(rows: [GridItem(.fixed(260))], spacing: 24) {
+                    ForEach(filteredBooks) { book in
+                        VStack(alignment: .leading, spacing: 16) {
+                            BookCoverView(book: book, imageSize: CGSize(width: 220, height: 320))
+                                .onTapGesture {
+                                    selectedBook = book
+                                }
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(book.title)
+                                    .font(.title3.weight(.semibold))
+                                Text(book.authors.map(\.name).joined(separator: ", "))
+                                    .font(.headline)
+                                    .foregroundStyle(.secondary)
+                                TagCloudView(tags: book.genres)
+                            }
+                        }
+                        .frame(width: 240, alignment: .leading)
+                    }
+                }
+                .padding(32)
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .searchable(text: $searchText, placement: .toolbar, prompt: Text("Поиск по названию, автору или жанру"))
             .navigationTitle("Мои книги")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -65,6 +91,8 @@ public struct BooksFeatureView: View {
                                     get: { filters.selectedShelves.contains(shelf.id) },
                                     set: { newValue in
                                         filters.setShelf(shelf.id, isSelected: newValue)
+
+                                        }
                                     }
                                 ))
                             }
@@ -116,6 +144,31 @@ public struct BooksFeatureView: View {
         }
         .sorted(by: { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending })
     }
+    private var filteredBooks: [Book] {
+        libraryStore.books.filter { book in
+            matchesSearch(book: book) && matchesFilters(book: book)
+        }
+    }
+
+    private func matchesSearch(book: Book) -> Bool {
+        guard !searchText.isEmpty else { return true }
+        let lowercasedQuery = searchText.lowercased()
+        let textToSearch = [
+            book.title,
+            book.authors.map(\.name).joined(separator: " "),
+            book.genres.joined(separator: " ")
+        ].joined(separator: " ").lowercased()
+        return textToSearch.contains(lowercasedQuery)
+    }
+
+    private func matchesFilters(book: Book) -> Bool {
+
+    }
+
+    private var allGenres: [String] {
+        Set(libraryStore.books.flatMap(\.$genres)).sorted()
+    }
+
 }
 
 struct BookDetailView: View {
