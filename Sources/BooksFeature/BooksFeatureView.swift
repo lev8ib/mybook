@@ -5,9 +5,7 @@ import CoreUI
 
 public struct BooksFeatureView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
-    @State private var searchText: String = ""
-    @State private var selectedGenreFilters: Set<String> = []
-    @State private var selectedShelfFilters: Set<Shelf.ID> = []
+    @State private var filters = BookFilterState()
     @State private var selectedBook: Book?
 
     public init() {}
@@ -46,7 +44,7 @@ public struct BooksFeatureView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, placement: .toolbar, prompt: Text("Поиск по названию, автору или жанру"))
+            .searchable(text: $filters.searchText, placement: .toolbar, prompt: Text("Поиск по названию, автору или жанру"))
             .navigationTitle("Мои книги")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -54,13 +52,9 @@ public struct BooksFeatureView: View {
                         Section("Жанры") {
                             ForEach(allGenres, id: \.self) { genre in
                                 Toggle(genre, isOn: Binding(
-                                    get: { selectedGenreFilters.contains(genre) },
+                                    get: { filters.selectedGenres.contains(genre) },
                                     set: { newValue in
-                                        if newValue {
-                                            selectedGenreFilters.insert(genre)
-                                        } else {
-                                            selectedGenreFilters.remove(genre)
-                                        }
+                                        filters.setGenre(genre, isSelected: newValue)
                                     }
                                 ))
                             }
@@ -68,13 +62,9 @@ public struct BooksFeatureView: View {
                         Section("Полки") {
                             ForEach(allShelfFilters, id: \.id) { shelf in
                                 Toggle(shelf.title, isOn: Binding(
-                                    get: { selectedShelfFilters.contains(shelf.id) },
+                                    get: { filters.selectedShelves.contains(shelf.id) },
                                     set: { newValue in
-                                        if newValue {
-                                            selectedShelfFilters.insert(shelf.id)
-                                        } else {
-                                            selectedShelfFilters.remove(shelf.id)
-                                        }
+                                        filters.setShelf(shelf.id, isSelected: newValue)
                                     }
                                 ))
                             }
@@ -111,39 +101,7 @@ public struct BooksFeatureView: View {
     }
 
     private var filteredBooks: [Book] {
-        libraryStore.books.filter { book in
-            matchesSearch(book: book) && matchesFilters(book: book)
-        }
-    }
-
-    private func matchesSearch(book: Book) -> Bool {
-        guard !searchText.isEmpty else { return true }
-        let lowercasedQuery = searchText.lowercased()
-        let textToSearch = [
-            book.title,
-            book.authors.map(\.name).joined(separator: " "),
-            book.genres.joined(separator: " ")
-        ].joined(separator: " ").lowercased()
-        return textToSearch.contains(lowercasedQuery)
-    }
-
-    private func matchesFilters(book: Book) -> Bool {
-        let genreMatches: Bool
-        if selectedGenreFilters.isEmpty {
-            genreMatches = true
-        } else {
-            genreMatches = !selectedGenreFilters.isDisjoint(with: Set(book.genres))
-        }
-
-        let shelfMatches: Bool
-        if selectedShelfFilters.isEmpty {
-            shelfMatches = true
-        } else {
-            let bookShelfIDs = Set(libraryStore.shelfIDs(for: book))
-            shelfMatches = !selectedShelfFilters.isDisjoint(with: bookShelfIDs)
-        }
-
-        return genreMatches && shelfMatches
+        filters.filteredBooks(in: libraryStore)
     }
 
     private var allGenres: [String] {
