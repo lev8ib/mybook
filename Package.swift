@@ -57,6 +57,7 @@ let package = Package(
             name: "CoreModelsTests",
             dependencies: ["CoreModels"],
             path: "Tests/CoreModelsTests"
+
         )
     ]
 )

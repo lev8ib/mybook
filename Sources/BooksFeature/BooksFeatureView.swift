@@ -5,6 +5,7 @@ import CoreUI
 
 public struct BooksFeatureView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
+    @State private var filters = BookFilterState()
     @State private var searchText: String = ""
     @State private var selectedBook: Book?
 
@@ -12,6 +13,39 @@ public struct BooksFeatureView: View {
 
     public var body: some View {
         NavigationStack {
+            ZStack {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
+
+                if filteredBooks.isEmpty {
+                    emptyStateView
+                } else {
+                    ScrollView(.horizontal) {
+                        LazyHGrid(rows: [GridItem(.fixed(260))], spacing: 24) {
+                            ForEach(filteredBooks) { book in
+                                VStack(alignment: .leading, spacing: 16) {
+                                    BookCoverView(book: book, imageSize: CGSize(width: 220, height: 320))
+                                        .onTapGesture {
+                                            selectedBook = book
+                                        }
+
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(book.title)
+                                            .font(.title3.weight(.semibold))
+                                        Text(book.authors.map(\.name).joined(separator: ", "))
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+                                        TagCloudView(tags: book.genres)
+                                    }
+                                }
+                                .frame(width: 240, alignment: .leading)
+                            }
+                        }
+                        .padding(32)
+                    }
+                }
+            }
+            .searchable(text: $filters.searchText, placement: .toolbar, prompt: Text("Поиск по названию, автору или жанру"))
             ScrollView(.horizontal) {
                 LazyHGrid(rows: [GridItem(.fixed(260))], spacing: 24) {
                     ForEach(filteredBooks) { book in
@@ -44,6 +78,19 @@ public struct BooksFeatureView: View {
                         Section("Жанры") {
                             ForEach(allGenres, id: \.self) { genre in
                                 Toggle(genre, isOn: Binding(
+                                    get: { filters.selectedGenres.contains(genre) },
+                                    set: { newValue in
+                                        filters.setGenre(genre, isSelected: newValue)
+                                    }
+                                ))
+                            }
+                        }
+                        Section("Полки") {
+                            ForEach(allShelfFilters, id: \.id) { shelf in
+                                Toggle(shelf.title, isOn: Binding(
+                                    get: { filters.selectedShelves.contains(shelf.id) },
+                                    set: { newValue in
+                                        filters.setShelf(shelf.id, isSelected: newValue)
 
                                         }
                                     }
@@ -61,6 +108,42 @@ public struct BooksFeatureView: View {
         }
     }
 
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "books.vertical")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 96, height: 96)
+                .foregroundStyle(.quaternary)
+
+            Text("Нет книг по заданным условиям")
+                .font(.title2.weight(.semibold))
+
+            Text("Измените параметры поиска или фильтров, чтобы увидеть доступные книги.")
+                .multilineTextAlignment(.center)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 320)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var filteredBooks: [Book] {
+        filters.filteredBooks(in: libraryStore)
+    }
+
+    private var allGenres: [String] {
+        Set(libraryStore.books.flatMap(\.genres)).sorted()
+    }
+
+    private var allShelfFilters: [(id: Shelf.ID, title: String)] {
+        libraryStore.libraries.flatMap { library in
+            library.shelves.map { shelf in
+                (id: shelf.id, title: "\(library.name) · \(shelf.name)")
+            }
+        }
+        .sorted(by: { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending })
+    }
     private var filteredBooks: [Book] {
         libraryStore.books.filter { book in
             matchesSearch(book: book) && matchesFilters(book: book)
