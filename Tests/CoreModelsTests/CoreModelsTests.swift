@@ -20,4 +20,5 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertFalse(placements.isEmpty)
         XCTAssertTrue(placements.allSatisfy { $0.book.id == book.id })
     }
+
 }

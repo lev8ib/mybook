@@ -6,7 +6,6 @@ import CoreUI
 public struct BooksFeatureView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
     @State private var searchText: String = ""
-    @State private var selectedFilters: [String] = []
     @State private var selectedBook: Book?
 
     public init() {}
@@ -45,12 +44,7 @@ public struct BooksFeatureView: View {
                         Section("Жанры") {
                             ForEach(allGenres, id: \.self) { genre in
                                 Toggle(genre, isOn: Binding(
-                                    get: { selectedFilters.contains(genre) },
-                                    set: { newValue in
-                                        if newValue {
-                                            selectedFilters.append(genre)
-                                        } else {
-                                            selectedFilters.removeAll { $0 == genre }
+
                                         }
                                     }
                                 ))
@@ -85,13 +79,13 @@ public struct BooksFeatureView: View {
     }
 
     private func matchesFilters(book: Book) -> Bool {
-        guard !selectedFilters.isEmpty else { return true }
-        return !Set(selectedFilters).isDisjoint(with: book.genres)
+
     }
 
     private var allGenres: [String] {
         Set(libraryStore.books.flatMap(\.$genres)).sorted()
     }
+
 }
 
 struct BookDetailView: View {

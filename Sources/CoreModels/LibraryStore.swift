@@ -20,6 +20,7 @@ public final class LibraryStore: ObservableObject {
         }
     }
 
+
     public func move(bookPlacement: BookPlacement, to shelfID: Shelf.ID, position: Int) {
         for index in libraries.indices {
             if let shelfIndex = libraries[index].shelves.firstIndex(where: { $0.id == shelfID }) {
