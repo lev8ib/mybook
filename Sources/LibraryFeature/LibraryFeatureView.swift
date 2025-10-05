@@ -4,28 +4,33 @@ import CoreModels
 
 public struct LibraryFeatureView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var selectedLibraryID: Library.ID?
     @State private var selectedShelfID: Shelf.ID?
 
     public init() {}
 
     public var body: some View {
-        NavigationSplitView(columnVisibility: .constant(.doubleColumn)) {
-            List(selection: $selectedLibraryID) {
-                ForEach(libraryStore.libraries) { library in
-                    VStack(alignment: .leading) {
-                        Text(library.name)
-                            .font(.headline)
-                        if !library.description.isEmpty {
-                            Text(library.description)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            if libraryStore.libraries.isEmpty {
+                ContentUnavailableView("Добавьте шкаф", systemImage: "books.vertical")
+            } else {
+                List(selection: $selectedLibraryID) {
+                    ForEach(libraryStore.libraries) { library in
+                        VStack(alignment: .leading) {
+                            Text(library.name)
+                                .font(.headline)
+                            if !library.description.isEmpty {
+                                Text(library.description)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        .tag(Optional(library.id))
                     }
-                    .tag(Optional(library.id))
                 }
+                .navigationTitle("Шкафы")
             }
-            .navigationTitle("Шкафы")
         } content: {
             if let library = selectedLibrary, !library.shelves.isEmpty {
                 List(selection: $selectedShelfID) {
@@ -55,12 +60,36 @@ public struct LibraryFeatureView: View {
                 ContentUnavailableView("Выберите полку", systemImage: "rectangle.split.3x1")
             }
         }
-        .onAppear {
-            if selectedLibraryID == nil {
-                selectedLibraryID = libraryStore.libraries.first?.id
+        .task { initializeSelectionsIfNeeded() }
+        .onChange(of: libraryStore.libraries) { _ in
+            guard !libraryStore.libraries.isEmpty else {
+                selectedLibraryID = nil
+                selectedShelfID = nil
+                return
             }
+
+            if let selectedLibraryID, !libraryStore.libraries.contains(where: { $0.id == selectedLibraryID }) {
+                self.selectedLibraryID = nil
+            }
+
+            if let selectedShelfID, !availableShelves.contains(where: { $0.id == selectedShelfID }) {
+                self.selectedShelfID = nil
+            }
+
+            initializeSelectionsIfNeeded()
+        }
+        .onChange(of: selectedLibraryID) { _ in
+            guard let library = selectedLibrary else {
+                selectedShelfID = nil
+                return
+            }
+
+            if let selectedShelfID, !library.shelves.contains(where: { $0.id == selectedShelfID }) {
+                selectedShelfID = nil
+            }
+
             if selectedShelfID == nil {
-                selectedShelfID = libraryStore.libraries.first?.shelves.first?.id
+                selectedShelfID = library.shelves.first?.id
             }
         }
     }
@@ -74,6 +103,20 @@ public struct LibraryFeatureView: View {
         guard let library = selectedLibrary else { return nil }
         guard let id = selectedShelfID else { return library.shelves.first }
         return library.shelves.first(where: { $0.id == id })
+    }
+
+    private var availableShelves: [Shelf] {
+        selectedLibrary?.shelves ?? libraryStore.libraries.first?.shelves ?? []
+    }
+
+    private func initializeSelectionsIfNeeded() {
+        if selectedLibraryID == nil {
+            selectedLibraryID = libraryStore.libraries.first?.id
+        }
+
+        if selectedShelfID == nil {
+            selectedShelfID = availableShelves.first?.id
+        }
     }
 }
 
