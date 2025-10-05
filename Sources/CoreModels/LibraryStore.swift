@@ -20,21 +20,6 @@ public final class LibraryStore: ObservableObject {
         }
     }
 
-    public func shelfIDs(for book: Book) -> [Shelf.ID] {
-        var seen = Set<Shelf.ID>()
-        var result: [Shelf.ID] = []
-
-        for library in libraries {
-            for shelf in library.shelves {
-                guard shelf.books.contains(where: { $0.book.id == book.id }) else { continue }
-                if seen.insert(shelf.id).inserted {
-                    result.append(shelf.id)
-                }
-            }
-        }
-
-        return result
-    }
 
     public func move(bookPlacement: BookPlacement, to shelfID: Shelf.ID, position: Int) {
         for index in libraries.indices {

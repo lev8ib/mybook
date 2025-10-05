@@ -21,26 +21,4 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertTrue(placements.allSatisfy { $0.book.id == book.id })
     }
 
-    func testShelfIDsForBook() throws {
-        let store = LibraryStore.sampleData()
-        guard store.books.count > 1 else {
-            XCTFail("Недостаточно книг для теста полок")
-            return
-        }
-
-        let book = store.books[1]
-        let shelfIDs = store.shelfIDs(for: book)
-
-        XCTAssertFalse(shelfIDs.isEmpty, "Книга должна находиться хотя бы на одной полке")
-        XCTAssertEqual(shelfIDs.count, Set(shelfIDs).count, "Идентификаторы полок не должны дублироваться")
-
-        for shelfID in shelfIDs {
-            let containsBook = store.libraries.contains { library in
-                library.shelves.contains { shelf in
-                    shelf.id == shelfID && shelf.books.contains { $0.book.id == book.id }
-                }
-            }
-            XCTAssertTrue(containsBook, "Полка \(shelfID) должна содержать тестовую книгу")
-        }
-    }
 }

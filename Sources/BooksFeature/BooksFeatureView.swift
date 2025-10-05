@@ -6,8 +6,6 @@ import CoreUI
 public struct BooksFeatureView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
     @State private var searchText: String = ""
-    @State private var selectedGenreFilters: Set<String> = []
-    @State private var selectedShelfFilters: Set<Shelf.ID> = []
     @State private var selectedBook: Book?
 
     public init() {}
@@ -46,26 +44,7 @@ public struct BooksFeatureView: View {
                         Section("Жанры") {
                             ForEach(allGenres, id: \.self) { genre in
                                 Toggle(genre, isOn: Binding(
-                                    get: { selectedGenreFilters.contains(genre) },
-                                    set: { newValue in
-                                        if newValue {
-                                            selectedGenreFilters.insert(genre)
-                                        } else {
-                                            selectedGenreFilters.remove(genre)
-                                        }
-                                    }
-                                ))
-                            }
-                        }
-                        Section("Полки") {
-                            ForEach(allShelfFilters, id: \.id) { shelf in
-                                Toggle(shelf.title, isOn: Binding(
-                                    get: { selectedShelfFilters.contains(shelf.id) },
-                                    set: { newValue in
-                                        if newValue {
-                                            selectedShelfFilters.insert(shelf.id)
-                                        } else {
-                                            selectedShelfFilters.remove(shelf.id)
+
                                         }
                                     }
                                 ))
@@ -100,36 +79,13 @@ public struct BooksFeatureView: View {
     }
 
     private func matchesFilters(book: Book) -> Bool {
-        let genreMatches: Bool
-        if selectedGenreFilters.isEmpty {
-            genreMatches = true
-        } else {
-            genreMatches = !selectedGenreFilters.isDisjoint(with: Set(book.genres))
-        }
 
-        let shelfMatches: Bool
-        if selectedShelfFilters.isEmpty {
-            shelfMatches = true
-        } else {
-            let bookShelfIDs = Set(libraryStore.shelfIDs(for: book))
-            shelfMatches = !selectedShelfFilters.isDisjoint(with: bookShelfIDs)
-        }
-
-        return genreMatches && shelfMatches
     }
 
     private var allGenres: [String] {
         Set(libraryStore.books.flatMap(\.$genres)).sorted()
     }
 
-    private var allShelfFilters: [(id: Shelf.ID, title: String)] {
-        libraryStore.libraries.flatMap { library in
-            library.shelves.map { shelf in
-                (id: shelf.id, title: "\(library.name) · \(shelf.name)")
-            }
-        }
-        .sorted(by: { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending })
-    }
 }
 
 struct BookDetailView: View {
