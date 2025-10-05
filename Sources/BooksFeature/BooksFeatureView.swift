@@ -14,30 +14,38 @@ public struct BooksFeatureView: View {
 
     public var body: some View {
         NavigationStack {
-            ScrollView(.horizontal) {
-                LazyHGrid(rows: [GridItem(.fixed(260))], spacing: 24) {
-                    ForEach(filteredBooks) { book in
-                        VStack(alignment: .leading, spacing: 16) {
-                            BookCoverView(book: book, imageSize: CGSize(width: 220, height: 320))
-                                .onTapGesture {
-                                    selectedBook = book
-                                }
+            ZStack {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
 
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(book.title)
-                                    .font(.title3.weight(.semibold))
-                                Text(book.authors.map(\.name).joined(separator: ", "))
-                                    .font(.headline)
-                                    .foregroundStyle(.secondary)
-                                TagCloudView(tags: book.genres)
+                if filteredBooks.isEmpty {
+                    emptyStateView
+                } else {
+                    ScrollView(.horizontal) {
+                        LazyHGrid(rows: [GridItem(.fixed(260))], spacing: 24) {
+                            ForEach(filteredBooks) { book in
+                                VStack(alignment: .leading, spacing: 16) {
+                                    BookCoverView(book: book, imageSize: CGSize(width: 220, height: 320))
+                                        .onTapGesture {
+                                            selectedBook = book
+                                        }
+
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(book.title)
+                                            .font(.title3.weight(.semibold))
+                                        Text(book.authors.map(\.name).joined(separator: ", "))
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+                                        TagCloudView(tags: book.genres)
+                                    }
+                                }
+                                .frame(width: 240, alignment: .leading)
                             }
                         }
-                        .frame(width: 240, alignment: .leading)
+                        .padding(32)
                     }
                 }
-                .padding(32)
             }
-            .background(Color(uiColor: .systemGroupedBackground))
             .searchable(text: $searchText, placement: .toolbar, prompt: Text("Поиск по названию, автору или жанру"))
             .navigationTitle("Мои книги")
             .toolbar {
@@ -80,6 +88,26 @@ public struct BooksFeatureView: View {
                 BookDetailView(book: book)
             }
         }
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "books.vertical")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 96, height: 96)
+                .foregroundStyle(.quaternary)
+
+            Text("Нет книг по заданным условиям")
+                .font(.title2.weight(.semibold))
+
+            Text("Измените параметры поиска или фильтров, чтобы увидеть доступные книги.")
+                .multilineTextAlignment(.center)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 320)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var filteredBooks: [Book] {
